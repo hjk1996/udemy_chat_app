@@ -1,30 +1,39 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+import './message_bubble.dart';
 
 class Messages extends StatelessWidget {
   const Messages({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder(
-      stream: FirebaseFirestore.instance.collection('chats').snapshots(),
-      builder: (ctx, AsyncSnapshot chatSnapshot) {
+    final String userId = FirebaseAuth.instance.currentUser!.uid;
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('chats/ou2HF6fAI8dFFjyQ5UZj/messages')
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
+      builder: (ctx, chatSnapshot) {
         if (chatSnapshot.connectionState == ConnectionState.waiting) {
-          return Center(
+          return const Center(
             child: CircularProgressIndicator(),
           );
         }
-
-        final chatDocs = chatSnapshot.data.docs ?? [];
-
+        final chatDocs = chatSnapshot.data!.docs;
         return ListView.builder(
+          reverse: true,
           itemCount: chatDocs.length,
           itemBuilder: (ctx, idx) {
-            // 여기서 안됨 해결하셈
-            print(json.decode(chatDocs[0]));
-            return Text('hi');
+            final data = chatDocs[idx].data() as Map;
+            return MessageBubble(
+              data['text'],
+              data['username'],
+              data['userId'] == userId,
+              key: ValueKey(chatDocs[idx].id),
+            );
           },
         );
       },
